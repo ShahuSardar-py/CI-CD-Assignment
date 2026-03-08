@@ -1,0 +1,12 @@
+{
+  "name": "id-card-webpage",
+  "version": "1.0.0",
+  "description": "Simple ID card webpage using Node.js",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
