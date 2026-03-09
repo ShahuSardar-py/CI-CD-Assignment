@@ -2,47 +2,35 @@ name: Build and Push to AWS ECR
 
 on:
   push:
-    branches:
-      - main
-
-env:
-  AWS_REGION: eu-north-1
-  ECR_REPOSITORY: node-ci-cd-demo
-  AWS_ACCOUNT_ID: 887678037687
+    branches: [main]
 
 jobs:
   build-and-push:
-    name: Build, tag and push Docker image
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: eu-north-1
 
-      - name: Login to Amazon ECR
+      - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag, and push Docker image
+      - name: Build and Push Image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+          REGISTRY=887678037687.dkr.ecr.eu-north-1.amazonaws.com
+          REPO=node-ci-cd-demo
 
-          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -t $REPO:$IMAGE_TAG .
 
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker tag $ECR_REPOSITORY:$IMAGE_TAG $REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $REPO:$IMAGE_TAG $REGISTRY/$REPO:$IMAGE_TAG
+          docker tag $REPO:$IMAGE_TAG $REGISTRY/$REPO:latest
 
-          docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $REGISTRY/$ECR_REPOSITORY:latest
-
-      - name: Output image URI
-        run: |
-          echo "Image pushed:"
-          echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:${{ github.sha }}"
+          docker push $REGISTRY/$REPO:$IMAGE_TAG
+          docker push $REGISTRY/$REPO:latest
