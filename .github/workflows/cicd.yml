@@ -2,35 +2,50 @@ name: Build and Push to AWS ECR
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - name: Login to ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and Push Image
+      - name: Build Docker image
         run: |
           IMAGE_TAG=${{ github.sha }}
-          REGISTRY=887678037687.dkr.ecr.eu-north-1.amazonaws.com
-          REPO=node-ci-cd-demo
+          docker build -t ${{ vars.ECR_REPOSITORY }}:$IMAGE_TAG .
 
-          docker build -t $REPO:$IMAGE_TAG .
+      - name: Tag Docker image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REGISTRY=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
 
-          docker tag $REPO:$IMAGE_TAG $REGISTRY/$REPO:$IMAGE_TAG
-          docker tag $REPO:$IMAGE_TAG $REGISTRY/$REPO:latest
+          docker tag ${{ vars.ECR_REPOSITORY }}:$IMAGE_TAG $REGISTRY/${{ vars.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker tag ${{ vars.ECR_REPOSITORY }}:$IMAGE_TAG $REGISTRY/${{ vars.ECR_REPOSITORY }}:latest
 
-          docker push $REGISTRY/$REPO:$IMAGE_TAG
-          docker push $REGISTRY/$REPO:latest
+      - name: Push image to ECR
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          REGISTRY=${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com
+
+          docker push $REGISTRY/${{ vars.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker push $REGISTRY/${{ vars.ECR_REPOSITORY }}:latest
+
+      - name: Output image URI
+        run: |
+          echo "Image pushed to:"
+          echo "${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}"
